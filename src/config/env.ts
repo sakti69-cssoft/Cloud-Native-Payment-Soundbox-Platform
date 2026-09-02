@@ -1,0 +1,3 @@
+import 'dotenv/config'; import {z} from 'zod';
+const schema=z.object({NODE_ENV:z.enum(['development','test','production']).default('development'),PORT:z.coerce.number().default(3000),DATABASE_URL:z.string().default('postgresql://soundbox:soundbox-local-only@localhost:5432/soundbox'),MQTT_URL:z.string().default('mqtt://localhost:1883'),JWT_SECRET:z.string().min(16).default('development-jwt-secret-change-me'),PAYMENT_HMAC_SECRET:z.string().min(16).default('development-hmac-secret-change-me'),ENCRYPTION_KEY_BASE64:z.string().default('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='),CORS_ORIGINS:z.string().default('http://localhost:3000'),LOG_LEVEL:z.string().default('info')});
+export const env=schema.parse(process.env);

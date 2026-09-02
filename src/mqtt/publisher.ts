@@ -1,0 +1,6 @@
+import mqtt from 'mqtt'; import {randomUUID} from 'node:crypto';
+export type PaymentMessage={eventId:string;transactionReference:string;amount:number;currency:string;language:string;message:string};
+export interface PaymentPublisher{publish(deviceCode:string,message:PaymentMessage):Promise<void>;close?():Promise<void>}
+export class MqttPublisher implements PaymentPublisher{private client:mqtt.MqttClient;constructor(url:string){this.client=mqtt.connect(url,{reconnectPeriod:1000})}async publish(code:string,m:PaymentMessage){await new Promise<void>((res,rej)=>this.client.publish(`soundbox/${code}/payment`,JSON.stringify(m),{qos:1},e=>e?rej(e):res()))}async close(){await this.client.endAsync()}}
+export const messageFor=(language:string,amount:number)=>({en:`Payment received: ${amount} rupees`,hi:`Bhugtan prapt hua: ${amount} rupaye`,or:`Payment received: ${amount} rupees`,bn:`Payment received: ${amount} rupees`,ta:`Payment received: ${amount} rupees`,te:`Payment received: ${amount} rupees`}[language]||`Payment received: ${amount} rupees`);
+export const paymentMessage=(t:any,d:any):PaymentMessage=>({eventId:randomUUID(),transactionReference:t.transactionReference,amount:t.amount,currency:t.currency,language:d.language,message:messageFor(d.language,t.amount)});

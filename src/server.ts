@@ -1,0 +1,2 @@
+import {createApp} from './app.js';import {PostgresRepository} from './repositories/postgres.js';import {MqttPublisher} from './mqtt/publisher.js';import {env} from './config/env.js';import {logger} from './config/logger.js';
+const repo=new PostgresRepository(env.DATABASE_URL),publisher=new MqttPublisher(env.MQTT_URL),app=createApp(repo,publisher);const server=app.listen(env.PORT,()=>logger.info({port:env.PORT},'soundbox API listening'));async function stop(){server.close();await publisher.close();await repo.close();}process.on('SIGTERM',stop);process.on('SIGINT',stop);

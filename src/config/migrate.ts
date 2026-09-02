@@ -1,0 +1,1 @@
+import pg from 'pg';import {readFile} from 'node:fs/promises';import {env} from './env.js';const p=new pg.Pool({connectionString:env.DATABASE_URL});await p.query(await readFile('migrations/001_init.sql','utf8'));await p.end();console.log('Migration complete');

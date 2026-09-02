@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+.env
+*.pem
+*.key
+*.tfstate
+*.tfstate.*
+.DS_Store
+npm-debug.log*

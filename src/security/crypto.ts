@@ -1,0 +1,3 @@
+import {createCipheriv,createDecipheriv,randomBytes} from 'node:crypto';
+export function encrypt(value:string,key:Buffer){if(key.length!==32)throw new Error('Encryption key must be 32 bytes');const iv=randomBytes(12),c=createCipheriv('aes-256-gcm',key,iv),body=Buffer.concat([c.update(value,'utf8'),c.final()]);return [iv,c.getAuthTag(),body].map(x=>x.toString('base64')).join('.')}
+export function decrypt(value:string,key:Buffer){const [i,t,b]=value.split('.').map(x=>Buffer.from(x,'base64')),d=createDecipheriv('aes-256-gcm',key,i);d.setAuthTag(t);return Buffer.concat([d.update(b),d.final()]).toString('utf8')}

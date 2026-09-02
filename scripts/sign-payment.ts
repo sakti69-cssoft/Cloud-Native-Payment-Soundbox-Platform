@@ -1,0 +1,1 @@
+import {createHmac} from 'node:crypto';import 'dotenv/config';const body=process.argv[2];if(!body)throw new Error("Usage: npm run sign -- '<compact JSON body>'");const secret=process.env.PAYMENT_HMAC_SECRET;if(!secret)throw new Error('PAYMENT_HMAC_SECRET is required');console.log(createHmac('sha256',secret).update(body).digest('hex'));

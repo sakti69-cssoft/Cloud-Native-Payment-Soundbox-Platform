@@ -1,0 +1,6 @@
+# Interview guide
+A payment soundbox is a network device that announces confirmed payments so a merchant need not inspect a phone. REST is request/response and suits provider ingress and management; MQTT is lightweight pub/sub with persistent connections and fits constrained devices. Google Pub/Sub is a durable cloud service-to-service event backbone, while MQTT is the final device transport.
+
+PostgreSQL supplies transactions, constraints, indexes, and auditable relationships. Registration binds a synthetic identity to a merchant and validates language/status. Idempotency uses a unique transaction reference and an early lookup so retries cannot create a second normal announcement. HMAC authenticates the provider body; Secret Manager centralizes rotation and access policy. Docker makes the local topology reproducible; CI compiles and tests while Trivy gates critical supply-chain findings.
+
+Important failure cases are database unavailability, broker outage after commit, duplicate MQTT delivery, offline devices, and secret rotation. The next scalability step is a transactional outbox consumed into Pub/Sub, partitioned workers, device acknowledgements/deduplication, retry/dead-letter policy, certificate identity, observability SLOs, and TTS audio generation/cache.

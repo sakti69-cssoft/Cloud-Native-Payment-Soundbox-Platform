@@ -1,0 +1,17 @@
+name: Security
+on:
+  push: {branches: [main]}
+  pull_request: {branches: [main]}
+permissions: {contents: read, security-events: write}
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Repository scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with: {scan-type: fs, scan-ref: ., scanners: 'vuln,secret,misconfig', severity: 'HIGH,CRITICAL', ignore-unfixed: true, exit-code: '1'}
+      - run: docker build -t soundbox-api:ci .
+      - name: Image scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with: {image-ref: 'soundbox-api:ci', severity: 'HIGH,CRITICAL', ignore-unfixed: true, exit-code: '1'}
