@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+exec > >(tee /var/log/soundbox-bootstrap.log) 2>&1
+dnf install -y docker git curl openssl
+systemctl enable --now docker
+install -d /usr/local/lib/docker/cli-plugins
+compose_version=v2.39.4
+tmp=$(mktemp -d)
+curl -fsSL "https://github.com/docker/compose/releases/download/$compose_version/docker-compose-linux-x86_64" -o "$tmp/docker-compose"
+curl -fsSL "https://github.com/docker/compose/releases/download/$compose_version/checksums.txt" -o "$tmp/checksums.txt"
+(cd "$tmp" && grep ' docker-compose-linux-x86_64$' checksums.txt | sed 's/docker-compose-linux-x86_64/docker-compose/' | sha256sum -c -)
+install -m 0755 "$tmp/docker-compose" /usr/local/lib/docker/cli-plugins/docker-compose
+rm -rf "$tmp"
+git clone "${repository_url}" /opt/soundbox
+git -C /opt/soundbox checkout --detach "${repository_ref}"
+cd /opt/soundbox
+umask 077
+random_secret() { openssl rand -base64 48 | tr -d '\n'; }
+db_password=$(openssl rand -hex 32)
+token=$(curl -fsS -X PUT -H 'X-aws-ec2-metadata-token-ttl-seconds: 21600' http://169.254.169.254/latest/api/token)
+public_ip=$(curl -fsS -H "X-aws-ec2-metadata-token: $token" http://169.254.169.254/latest/meta-data/public-ipv4)
+cat > .env.production <<EOF
+NODE_ENV=production
+PORT=3000
+POSTGRES_DB=soundbox
+POSTGRES_USER=soundbox
+POSTGRES_PASSWORD=$db_password
+DATABASE_URL=postgresql://soundbox:$db_password@postgres:5432/soundbox
+MQTT_URL=mqtt://mosquitto:1883
+JWT_SECRET=$(random_secret)
+PAYMENT_HMAC_SECRET=$(random_secret)
+ENCRYPTION_KEY_BASE64=$(openssl rand -base64 32 | tr -d '\n')
+CORS_ORIGINS=http://$public_ip
+LOG_LEVEL=info
+DEVICE_CODE=SBOX-DEMO-001
+EOF
+chmod 0600 .env.production
+docker compose --env-file .env.production -f compose.prod.yaml up -d --build --wait --wait-timeout 300

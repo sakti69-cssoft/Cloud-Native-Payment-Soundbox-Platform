@@ -2,9 +2,12 @@ node_modules/
 dist/
 coverage/
 .env
+.env.production
 *.pem
 *.key
 *.tfstate
 *.tfstate.*
+.terraform/
+*.tfplan
 .DS_Store
 npm-debug.log*

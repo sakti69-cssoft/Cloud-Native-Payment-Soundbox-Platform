@@ -1,0 +1,47 @@
+name: soundbox-prod
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment: {POSTGRES_DB: "${POSTGRES_DB}", POSTGRES_USER: "${POSTGRES_USER}", POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"}
+    volumes: ["postgres-data:/var/lib/postgresql/data", "./migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro"]
+    networks: [backend]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"], interval: 5s, timeout: 3s, retries: 20}
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    volumes: ["./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro"]
+    networks: [backend]
+    healthcheck: {test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "$$SYS/broker/version", "-C", "1", "-W", "3"], interval: 10s, timeout: 5s, retries: 10}
+  seed:
+    build: .
+    env_file: ${SOUNDBOX_ENV_FILE:-.env.production}
+    command: ["node", "dist/src/config/seed.js"]
+    networks: [backend]
+    depends_on: {postgres: {condition: service_healthy}}
+    restart: "no"
+  soundbox-api:
+    build: .
+    restart: unless-stopped
+    env_file: ${SOUNDBOX_ENV_FILE:-.env.production}
+    networks: [edge, backend]
+    depends_on: {postgres: {condition: service_healthy}, mosquitto: {condition: service_healthy}, seed: {condition: service_completed_successfully}}
+    healthcheck: {test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"], interval: 10s, timeout: 3s, retries: 15}
+  soundbox-simulator:
+    build: .
+    restart: unless-stopped
+    command: ["node", "dist/simulator/index.js"]
+    env_file: ${SOUNDBOX_ENV_FILE:-.env.production}
+    networks: [backend]
+    depends_on: {mosquitto: {condition: service_healthy}}
+  nginx:
+    image: nginx:1.29-alpine
+    restart: unless-stopped
+    user: nginx
+    ports: ["80:8080"]
+    volumes: ["./nginx/nginx.conf:/etc/nginx/nginx.conf:ro"]
+    networks: [edge]
+    depends_on: {soundbox-api: {condition: service_healthy}}
+    healthcheck: {test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"], interval: 10s, timeout: 3s, retries: 15}
+networks: {edge: {}, backend: {internal: true}}
+volumes: {postgres-data: {}}
