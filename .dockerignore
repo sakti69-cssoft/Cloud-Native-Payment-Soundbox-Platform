@@ -1,0 +1,12 @@
+.git
+.env
+node_modules
+coverage
+dist
+.vscode
+.idea
+*.log
+docs
+postman
+load-tests
+tests

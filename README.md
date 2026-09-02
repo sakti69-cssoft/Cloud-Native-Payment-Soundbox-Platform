@@ -2,7 +2,7 @@
 
 > Personal portfolio recreation using synthetic data.
 
-**Personal portfolio recreation of a payment soundbox notification platform using synthetic data.** This is an original educational implementation and is not affiliated with or deployed by any bank or payment company. It contains no company source code, real merchants, customers, credentials, or internal infrastructure details.
+**Personal portfolio recreation of a payment soundbox notification platform using synthetic data.** This project is an original educational/personal portfolio implementation using synthetic data and is not affiliated with or deployed by any bank or payment company. It contains no company source code, real merchants, customers, credentials, or internal infrastructure details.
 
 ## What it demonstrates
 
@@ -34,7 +34,19 @@ docker compose ps
 docker compose exec soundbox-api node dist/src/config/seed.js
 ```
 
-Open `/health`, `/ready`, `/metrics`, and `/api-docs` on `http://localhost:3000`. Management endpoints require a JWT signed with `JWT_SECRET`. Payment bodies require `X-Soundbox-Signature`, the lower-case hex HMAC-SHA256 of the exact compact JSON bytes using `PAYMENT_HMAC_SECRET`; `npm run sign -- '<json>'` creates it. The Postman collection contains a pre-request signature script.
+Open `/health`, `/ready`, `/metrics`, and `/api-docs` on `http://localhost:3000`. Management endpoints require a JWT signed with `JWT_SECRET`. Payment bodies require `X-Soundbox-Signature`, a lower-case hex HMAC-SHA256 over recursively key-sorted canonical JSON using `PAYMENT_HMAC_SECRET`. The API, CLI, tests, and Postman use the same deterministic representation, so JSON whitespace and property order do not change the signature.
+
+Reliable PowerShell signing:
+
+```powershell
+$body = '{"merchantCode":"SHOP-DEMO-001","transactionReference":"TXN-DEMO-500002","amount":500,"currency":"INR","status":"SUCCESS"}'
+$signature = npm run --silent sign -- $body
+Invoke-RestMethod -Method Post -Uri http://localhost:3000/api/v1/payments/notify -ContentType application/json -Headers @{ 'X-Soundbox-Signature' = $signature } -Body $body
+```
+
+## Verified synthetic flow
+
+A synthetic ₹500 payment was validated through API → PostgreSQL → MQTT → simulated Soundbox announcement. Duplicate delivery of the same transaction reference returns the existing row without a second normal announcement; explicit authenticated replay intentionally publishes another announcement and records a device event.
 
 ```mermaid
 sequenceDiagram
