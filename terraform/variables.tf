@@ -23,8 +23,12 @@ variable "repository_url" {
   default = "https://github.com/sakti69-cssoft/Cloud-Native-Payment-Soundbox-Platform.git"
 }
 variable "repository_ref" {
-  type    = string
-  default = "6c121716a77074856040355850089e929bf40bca"
+  type        = string
+  description = "Exact reviewed 40-character Git commit SHA deployed by bootstrap."
+  validation {
+    condition     = can(regex("^[0-9a-fA-F]{40}$", var.repository_ref))
+    error_message = "repository_ref must be an exact 40-character Git commit SHA."
+  }
 }
 variable "ssh_cidr" {
   type     = string
