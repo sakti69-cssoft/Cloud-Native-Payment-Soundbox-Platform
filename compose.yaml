@@ -12,10 +12,11 @@ services:
   soundbox-api:
     build: .
     env_file: .env
-    ports: ["3000:3000"]
-    depends_on: {postgres: {condition: service_healthy}, mosquitto: {condition: service_healthy}}
+    ports: ["127.0.0.1:3001:3000"]
+    depends_on: {postgres: {condition: service_healthy}, mosquitto: {condition: service_healthy}, seed: {condition: service_completed_successfully}}
     healthcheck: {test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"], interval: 10s, timeout: 3s, retries: 12}
   soundbox-simulator:
+    healthcheck: {test: ["CMD", "node", "-e", "const fs=require('fs');process.exit(Date.now()-fs.statSync('/tmp/soundbox-ready').mtimeMs<15000?0:1)"], interval: 10s, timeout: 3s, retries: 12}
     build: .
     command: ["node","dist/simulator/index.js"]
     env_file: .env
@@ -26,4 +27,9 @@ services:
     command: ["node","dist/simulator/index.js"]
     environment: {MQTT_URL: mqtt://mosquitto:1883, DEVICE_CODE: SBOX-DEMO-002}
     depends_on: {mosquitto: {condition: service_healthy}}
+  seed:
+    build: .
+    env_file: .env
+    command: ["node", "dist/src/config/seed.js"]
+    depends_on: {postgres: {condition: service_healthy}}
 volumes: {postgres-data: {}}

@@ -28,6 +28,7 @@ services:
     depends_on: {postgres: {condition: service_healthy}, mosquitto: {condition: service_healthy}, seed: {condition: service_completed_successfully}}
     healthcheck: {test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"], interval: 10s, timeout: 3s, retries: 15}
   soundbox-simulator:
+    healthcheck: {test: ["CMD", "node", "-e", "const fs=require('fs');process.exit(Date.now()-fs.statSync('/tmp/soundbox-ready').mtimeMs<15000?0:1)"], interval: 10s, timeout: 3s, retries: 12}
     build: .
     restart: unless-stopped
     command: ["node", "dist/simulator/index.js"]

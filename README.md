@@ -24,24 +24,26 @@ flowchart LR
 Requires Node.js 24, Docker, and Docker Compose.
 
 ```bash
-cp .env.example .env
-npm install
+node scripts/init-local.mjs
+npm ci
 npm run lint
 npm test
 npm run build
 docker compose up -d --build --wait
 docker compose ps
-docker compose exec soundbox-api node dist/src/config/seed.js
+docker compose exec -T soundbox-api node dist/scripts/verify-stack.js
 ```
 
-Open `/health`, `/ready`, `/metrics`, and `/api-docs` on `http://localhost:3000`. Management endpoints require a JWT signed with `JWT_SECRET`. Payment bodies require `X-Soundbox-Signature`, a lower-case hex HMAC-SHA256 over recursively key-sorted canonical JSON using `PAYMENT_HMAC_SECRET`. The API, CLI, tests, and Postman use the same deterministic representation, so JSON whitespace and property order do not change the signature.
+Open `/health`, `/ready`, `/metrics`, and `/api-docs` on `http://localhost:3001` from this laptop (`3000` inside the container). Management endpoints require a JWT signed with `JWT_SECRET`. Payment bodies require `X-Soundbox-Signature`, a lower-case hex HMAC-SHA256 over recursively key-sorted canonical JSON using `PAYMENT_HMAC_SECRET`. The API, CLI, tests, and Postman use the same deterministic representation, so JSON whitespace and property order do not change the signature.
+
+The local stack seeds its synthetic merchant/device automatically. API and MQTT host ports bind to loopback. The verification command creates a uniquely named synthetic payment and checks PostgreSQL, MQTT, idempotency, replay, and rejected requests. It does not perform a real payment or produce audio. See [laptop recovery](docs/recovery.md) for recovered history, folder mapping, restart validation, and deployment preparation.
 
 Reliable PowerShell signing:
 
 ```powershell
 $body = '{"merchantCode":"SHOP-DEMO-001","transactionReference":"TXN-DEMO-500002","amount":500,"currency":"INR","status":"SUCCESS"}'
 $signature = npm run --silent sign -- $body
-Invoke-RestMethod -Method Post -Uri http://localhost:3000/api/v1/payments/notify -ContentType application/json -Headers @{ 'X-Soundbox-Signature' = $signature } -Body $body
+Invoke-RestMethod -Method Post -Uri http://localhost:3001/api/v1/payments/notify -ContentType application/json -Headers @{ 'X-Soundbox-Signature' = $signature } -Body $body
 ```
 
 ## Verified synthetic flow

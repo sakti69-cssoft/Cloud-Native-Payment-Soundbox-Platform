@@ -1,5 +1,10 @@
 .git
 .env
+.env.*
+*.tfstate*
+*.tfplan
+*.pem
+*.key
 node_modules
 coverage
 dist

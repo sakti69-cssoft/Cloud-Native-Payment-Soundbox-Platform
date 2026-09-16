@@ -14,3 +14,12 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - run: node scripts/init-local.mjs
+      - run: docker compose up -d --build --wait --wait-timeout 180
+      - run: docker compose exec -T soundbox-api node dist/scripts/verify-stack.js
+      - name: Container diagnostics
+        if: failure()
+        run: docker compose logs --tail 100
+      - name: Stop test stack
+        if: always()
+        run: docker compose down
