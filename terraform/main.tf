@@ -3,9 +3,10 @@ module "networking" {
   name   = "soundbox-${var.environment}"
 }
 module "security" {
-  source   = "./modules/security"
-  vpc_id   = module.networking.vpc_id
-  ssh_cidr = var.ssh_cidr
+  source             = "./modules/security"
+  vpc_id             = module.networking.vpc_id
+  ssh_cidr           = var.ssh_cidr
+  https_egress_cidrs = var.https_egress_cidrs
 }
 module "iam" {
   source = "./modules/iam"
