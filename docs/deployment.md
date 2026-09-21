@@ -1,2 +1,4 @@
 # Deployment
+
+Terraform HTTPS egress is deny-by-default. Set `https_egress_cidrs` to reviewed IPv4 destination ranges of /16 or narrower before deploying. Without this configuration, bootstrap downloads, GitHub, container registries and SSM connections cannot complete. Inventory all required endpoints and redirects; do not guess their addresses or use a broad internet range. For changing public endpoints, design managed egress or private endpoints before deployment. These templates do not provision an outbound proxy automatically. This review changes templates only and does not apply infrastructure.
 Compose runs PostgreSQL, Mosquitto, the non-root API, and a simulator with health checks. Copy `.env.example` to `.env`, replace every placeholder, build, wait for health, and seed synthetic development data. Production must use managed secrets, TLS, broker ACLs, durable event delivery, backups, migrations as a release job, and least-privilege networking.

@@ -4,3 +4,5 @@ instance_type = "t3.small"
 root_volume_size = 25
 repository_ref = "0123456789abcdef0123456789abcdef01234567"
 # Optional SSH must be a single operator /32; SSM is preferred.
+# Supply reviewed destination CIDRs before deploying. Empty blocks bootstrap downloads and SSM HTTPS.
+https_egress_cidrs = []

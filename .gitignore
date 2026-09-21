@@ -12,3 +12,4 @@ terraform.tfvars
 *.tfplan
 .DS_Store
 npm-debug.log*
+.runtime/

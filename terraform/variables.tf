@@ -2,6 +2,15 @@ variable "region" {
   type    = string
   default = "ap-south-1"
 }
+variable "https_egress_cidrs" {
+  type        = set(string)
+  default     = []
+  description = "Reviewed IPv4 HTTPS destinations needed for bootstrap, registries, GitHub and SSM. Empty denies outbound HTTPS."
+  validation {
+    condition     = alltrue([for cidr in var.https_egress_cidrs : can(cidrnetmask(cidr)) && try(tonumber(split("/", cidr)[1]) >= 16, false)])
+    error_message = "HTTPS destinations must be valid IPv4 CIDRs with prefix lengths of /16 or narrower."
+  }
+}
 variable "environment" {
   type    = string
   default = "portfolio-demo"

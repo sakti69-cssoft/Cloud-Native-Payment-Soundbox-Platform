@@ -27,7 +27,10 @@ const deviceSchema = z.object({
 const paymentSchema = z.object({
   merchantCode: z.string(),
   transactionReference: z.string().regex(/^[A-Za-z0-9-]{3,80}$/),
-  amount: z.number().positive().max(10000000),
+  amount: z.number().positive().max(10000000).refine(
+    (value) => Number(value.toFixed(2)) === value,
+    "Amount must have at most two decimal places",
+  ),
   currency: z.enum(["INR"]),
   status: z.enum(["PENDING", "SUCCESS", "FAILED"]),
 });
@@ -170,22 +173,41 @@ export function createApp(repo: Repository, publisher: PaymentPublisher) {
   app.post("/api/v1/payments/notify", hmacAuth, async (req, res, next) => {
     try {
       const v = paymentSchema.parse(req.body);
-      const old = await repo.getTransactionByReference(v.transactionReference);
-      if (old) return res.json({ ...old, idempotent: true });
       const m = await repo.getMerchantByCode(v.merchantCode);
       if (!m) return res.status(404).json({ message: "Merchant not found" });
+      const duplicate = (old: Awaited<ReturnType<Repository["createTransaction"]>>) => {
+        if (old.merchantId !== m.id || old.amount !== v.amount ||
+            old.currency !== v.currency || old.paymentStatus !== v.status) {
+          return res.status(409).json({ message: "Transaction reference conflicts with an existing payment" });
+        }
+        return res.json({ ...old, idempotent: true });
+      };
+      const old = await repo.getTransactionByReference(v.transactionReference);
+      if (old) return duplicate(old);
+      if (m.status !== "ACTIVE")
+        return res.status(409).json({ message: "Merchant is not active" });
       const d = await repo.findActiveDevice(m.id);
       if (!d)
         return res.status(409).json({ message: "No active soundbox device" });
-      let t = await repo.createTransaction({
-        transactionReference: v.transactionReference,
-        merchantId: m.id,
-        deviceId: d.id,
-        amount: v.amount,
-        currency: v.currency,
-        paymentStatus: v.status,
-        announcementStatus: "PENDING",
-      });
+      let t;
+      try {
+        t = await repo.createTransaction({
+          transactionReference: v.transactionReference,
+          merchantId: m.id,
+          deviceId: d.id,
+          amount: v.amount,
+          currency: v.currency,
+          paymentStatus: v.status,
+          announcementStatus: "PENDING",
+        });
+      } catch (error) {
+        // PostgreSQL uniqueness serializes racing requests. Only the winner publishes.
+        if ((error as { code?: string }).code === "23505") {
+          const winner = await repo.getTransactionByReference(v.transactionReference);
+          if (winner) return duplicate(winner);
+        }
+        throw error;
+      }
       if (v.status === "SUCCESS") {
         await publisher.publish(d.deviceCode, paymentMessage(t, d));
         await repo.updateAnnouncement(t.id, "PUBLISHED");
