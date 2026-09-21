@@ -6,6 +6,8 @@
 
 ## What it demonstrates
 
+This is the parent project of [PayOps GenAI](https://github.com/sakti69-cssoft/PayOps). PayOps separately implements durable outbox dispatch, signed device receipts, monitoring and read-only incident investigation. Those child-project capabilities are not implicitly present in this repository.
+
 The platform accepts a signed synthetic payment event, validates and stores it in PostgreSQL, publishes an announcement over MQTT, and lets one or more simulated soundboxes print it. It includes idempotency, management APIs, transaction history and replay, a local event-consumer abstraction, an optional Google adapter scaffold, structured logs, metrics, tests, Docker, CI, dependency updates, and strict Trivy gates.
 
 ```mermaid
@@ -82,6 +84,10 @@ sequenceDiagram
 Helmet, allow-listed CORS, 64 KB request limits, rate limits, JWT management authentication, webhook HMAC verification, Zod validation, correlation IDs, redacted Pino logs, non-root containers, unique database constraints, and structured production-safe errors are included. AES-256-GCM helpers demonstrate authenticated encryption for a small secret-backed configuration value; the 32-byte key is supplied as base64 in the environment. It is intentionally not applied to ordinary searchable domain data. Local anonymous MQTT is loopback/container-only and must be replaced with TLS, accounts, and ACLs in production.
 
 ## Operations and tests
+
+`npm test` includes payment retry and production-configuration regression tests. Real PostgreSQL tests run when `TEST_DATABASE_URL` points to a database whose name starts with `soundbox_test`. They create and retain a unique schema for each run. Without that setting, those tests are explicitly skipped. GitHub CI supplies a PostgreSQL service and runs them automatically. Never use an application database for this setting.
+
+For production, replace every placeholder in `.env.production.example` before startup. Production configuration rejects missing or example signing secrets, an invalid or zero encryption key and an example database URL. Do not commit generated credentials.
 
 Run `k6 run -e PAYMENT_HMAC_SECRET=... load-tests/payment-notification.js` only after seeding. CI runs lint, unit/integration-style HTTP tests, and compilation on Node 24. The security workflow scans the repository and built image at HIGH/CRITICAL with `--ignore-unfixed` semantics and a failing gate. No performance or compliance claims are made.
 
